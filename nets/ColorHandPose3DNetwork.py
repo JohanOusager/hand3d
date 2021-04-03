@@ -17,7 +17,9 @@
 #
 from __future__ import print_function, unicode_literals
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+
 import os
 
 from utils.general import *
@@ -94,7 +96,7 @@ class ColorHandPose3DNetwork(object):
 
         # upsample keypoint scoremap
         s = image_crop.get_shape().as_list()
-        keypoints_scoremap = tf.image.resize_images(keypoints_scoremap, (s[1], s[2]))
+        keypoints_scoremap = tf.compat.v1.image.resize_images(keypoints_scoremap, (s[1], s[2]))
 
         return hand_scoremap, image_crop, scale_crop, center, keypoints_scoremap, keypoint_coord3d
 
@@ -139,7 +141,7 @@ class ColorHandPose3DNetwork(object):
             Outputs:
                 scoremap_list_large: list of [B, 256, 256, 2] tf.float32 tensor, Scores for the hand segmentation classes
         """
-        with tf.variable_scope('HandSegNet'):
+        with tf.compat.v1.variable_scope('HandSegNet'):
             scoremap_list = list()
             layers_per_block = [2, 2, 4, 4]
             out_chan_list = [64, 128, 256, 512]
@@ -163,7 +165,7 @@ class ColorHandPose3DNetwork(object):
 
             # upsample to full size
             s = image.get_shape().as_list()
-            scoremap_list_large = [tf.image.resize_images(x, (s[1], s[2])) for x in scoremap_list]
+            scoremap_list_large = [tf.compat.v1.image.resize_images(x, (s[1], s[2])) for x in scoremap_list]
 
         return scoremap_list_large
 
@@ -178,7 +180,7 @@ class ColorHandPose3DNetwork(object):
             Outputs:
                 scoremap_list_large: list of [B, 256, 256, 21] tf.float32 tensor, Scores for the hand keypoints
         """
-        with tf.variable_scope('PoseNet2D'):
+        with tf.compat.v1.variable_scope('PoseNet2D'):
             scoremap_list = list()
             layers_per_block = [2, 2, 4, 2]
             out_chan_list = [64, 128, 256, 512]
@@ -248,7 +250,7 @@ class ColorHandPose3DNetwork(object):
 
     def _inference_pose3d_can(self, keypoints_scoremap, hand_side, evaluation, train=False):
         """ Inference of canonical coordinates. """
-        with tf.variable_scope('PosePrior'):
+        with tf.compat.v1.variable_scope('PosePrior'):
             # use encoding to detect relative, normed 3d coords
             x = keypoints_scoremap  # this is 28x28x21
             s = x.get_shape().as_list()
@@ -273,7 +275,7 @@ class ColorHandPose3DNetwork(object):
 
     def _inference_viewpoint(self, keypoints_scoremap, hand_side, evaluation, train=False):
         """ Inference of the viewpoint. """
-        with tf.variable_scope('ViewpointNet'):
+        with tf.compat.v1.variable_scope('ViewpointNet'):
             # estimate rotation
             ux, uy, uz = self._rotation_estimation(keypoints_scoremap, hand_side, evaluation, train=train)
 
@@ -341,7 +343,7 @@ class ColorHandPose3DNetwork(object):
             Inputs:
                 coords_xyz_canonical: Nx3 matrix, containing the coordinates for each of the N keypoints
         """
-        with tf.variable_scope('flip-right-hand'):
+        with tf.compat.v1.variable_scope('flip-right-hand'):
             expanded = False
             s = coords_xyz_canonical.get_shape().as_list()
             if len(s) == 2:
